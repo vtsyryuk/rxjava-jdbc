@@ -83,6 +83,11 @@ jobs:
             echo '::error::SonarCloud is enabled but SONAR_TOKEN is missing. Add the repository secret; see .github/SONARCLOUD.md.'
             exit 1
           fi
+      - name: Set up source JDK for semantic analysis
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '8'
       - name: Set up scanner JDK
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
@@ -95,4 +100,4 @@ jobs:
           path: target
       - name: Analyze and enforce the quality gate
         run: |
-          mvn -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar -Dsonar.organization="$SONAR_ORGANIZATION" -Dsonar.projectKey="$SONAR_PROJECT_KEY" -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300
+          mvn -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar -Dsonar.java.jdkHome="$JAVA_HOME_8_X64" -Dsonar.organization="$SONAR_ORGANIZATION" -Dsonar.projectKey="$SONAR_PROJECT_KEY" -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300
