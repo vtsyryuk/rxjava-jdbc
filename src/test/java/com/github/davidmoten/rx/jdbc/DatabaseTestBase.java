@@ -1535,7 +1535,6 @@ public abstract class DatabaseTestBase {
 
     @Test
     public void testReturnGeneratedKeysForOneInsertedValue() {
-        // h2 only returns the last generated key
         List<Integer> list = db()
                 //
                 .update("insert into note(text) values(?)")
@@ -1552,7 +1551,6 @@ public abstract class DatabaseTestBase {
 
     @Test
     public void testReturnGeneratedKeysForMultipleInsertedValuesInOneStatement() {
-        // h2 only returns the last generated key
         List<Integer> list = db()
                 //
                 .update("insert into note(text) values(?),(?)")
@@ -1564,12 +1562,11 @@ public abstract class DatabaseTestBase {
                 .getAs(Integer.class)
                 //
                 .toList().toBlocking().single();
-        assertEquals(Arrays.asList(2), list);
+        assertEquals(Arrays.asList(1, 2), list);
     }
 
     @Test
     public void testReturnGeneratedKeysForMultipleCallsOfInsert() {
-        // h2 only returns the last generated key
         List<Integer> list = db()
                 //
                 .update("insert into note(text) values(?)")
