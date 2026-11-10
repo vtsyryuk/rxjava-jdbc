@@ -1,0 +1,95 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: sonarcloud-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  SONAR_ENABLED: ${{ vars.SONAR_ENABLED }}
+  SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || 'vtsyryuk' }}
+  SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'vtsyryuk_rxjava-jdbc' }}
+
+jobs:
+  verify:
+    name: SonarCloud build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up legacy build JDK
+        uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '8'
+      - name: Build, test, and generate JaCoCo coverage
+        run: |
+          mvn -B -ntp org.jacoco:jacoco-maven-plugin:0.8.14:prepare-agent test org.jacoco:jacoco-maven-plugin:0.8.14:report
+      - name: Upload scanner inputs
+        uses: actions/upload-artifact@v7
+        with:
+          name: sonar-inputs
+          path: |
+            target/classes/
+            target/test-classes/
+            target/site/jacoco/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Report analysis activation state
+        shell: bash
+        run: |
+          if [ "$SONAR_ENABLED" != 'true' ]; then
+            echo '### SonarCloud analysis is not activated' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Build/test verification ran. No SonarCloud analysis or quality gate ran. Complete .github/SONARCLOUD.md and set SONAR_ENABLED=true.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  analysis:
+    name: SonarCloud analysis and quality gate
+    needs: verify
+    # Untrusted PRs still get build/test verification, without receiving a token.
+    if: vars.SONAR_ENABLED == 'true' && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require analysis credentials
+        shell: bash
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo '::error::SonarCloud is enabled but SONAR_TOKEN is missing. Add the repository secret; see .github/SONARCLOUD.md.'
+            exit 1
+          fi
+      - name: Set up scanner JDK
+        uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Download scanner inputs
+        uses: actions/download-artifact@v7
+        with:
+          name: sonar-inputs
+          path: target
+      - name: Analyze and enforce the quality gate
+        run: |
+          mvn -B -ntp org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar -Dsonar.organization="$SONAR_ORGANIZATION" -Dsonar.projectKey="$SONAR_PROJECT_KEY" -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300
