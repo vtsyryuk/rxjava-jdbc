@@ -669,7 +669,7 @@ Backpressure
 Logging
 -----------------
 Logging is handled by slf4j which bridges to the logging framework of your choice. Add
-the dependency for your logging framework as a maven dependency and you are sorted. See the test scoped log4j example in [rxjava-jdbc/pom.xml](https://github.com/davidmoten/rxjava-jdbc/blob/master/pom.xml).
+the dependency for your logging framework as a maven dependency and you are sorted. See the test scoped SLF4J Simple example in [rxjava-jdbc/pom.xml](https://github.com/davidmoten/rxjava-jdbc/blob/master/pom.xml).
 
 Database Connection Pools
 ----------------------------
