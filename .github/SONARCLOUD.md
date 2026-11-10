@@ -19,3 +19,5 @@ Scanner inputs: `target/classes/`, `target/test-classes/`, `target/site/jacoco/`
 The legacy Maven tests run under JDK 8 and use JaCoCo XML; the Maven scanner runs separately under JDK 25.
 
 After activation, make `SonarCloud analysis and quality gate` a required check in GitHub branch protection if desired. Do not require that job for untrusted PRs whose analysis is intentionally skipped.
+
+All workflow actions are pinned to immutable commits. Permissions are declared per job, and the build/test job receives no SonarCloud token.
